@@ -275,25 +275,23 @@ module cut_with_label(x=0, y=0, w=1, h=1, t=1, s=1, tab_width=d_tabw, tab_height
  * @brief Places a label on a tab at the correct position and orientation
  */
 module place_label_on_tab(x, y, w, h, t, text, style, font, text_size, text_depth, tab_width) {
-    // Calculate compartment center position in mm
+    // Calculate compartment position in mm
     comp_center_x = (x + w/2) * l_grid;
-    comp_center_y = (y + h/2) * l_grid;
-    comp_width_mm = w * l_grid;
+    comp_y = y * l_grid;
     
     // Only place labels on tabs that will actually exist (not style 5 = none)
-    if (t != 5) {
-        // Position the label on the front edge of the compartment (y direction)
-        // This is a simplified positioning - tabs are on the front edge
-        translate([comp_center_x, y * l_grid - d_wall - 1, $dh + BASE_HEIGHT + h_bot]) {
-            rotate([90, 0, 0]) {  // Rotate to face forward
+    if (t != 5 && text != "") {
+        // Position the label on the tab area
+        // For gridfinity bins, tabs are on the front (negative Y) side
+        translate([comp_center_x, comp_y - d_wall - 5, $dh + BASE_HEIGHT - 2]) {
+            rotate([90, 0, 0]) {  // Rotate to face outward 
                 if (style == 1) {
-                    // Embossed (raised text)
-                    translate([0, 0, text_depth])
+                    // Embossed (raised text) - add to the surface
                     linear_extrude(height = text_depth)
                     text(text, size = text_size, font = font, halign = "center", valign = "center");
                 } else if (style == 2) {
-                    // Debossed (recessed text) - subtract from the material
-                    translate([0, 0, -0.1])
+                    // Debossed (recessed text) - subtract from material
+                    translate([0, 0, -text_depth])
                     linear_extrude(height = text_depth + 0.1)
                     text(text, size = text_size, font = font, halign = "center", valign = "center");
                 }

@@ -88,13 +88,13 @@ scoop = 1; //[0:0.1:1]
 // enable labels on tabs
 enable_labels = false;
 // text for the labels (semicolon separated for multiple compartments)
-label_text = "Sample"; 
+label_text = "Sample;Test;Demo;Parts"; 
 // label style
 label_style = 1; //[0:None,1:Embossed,2:Debossed]
 // font for label text
 label_font = "Liberation Sans:style=Bold";
 // height of label text in mm
-label_text_size = 3; // .1
+label_text_size = 2.5; // .1
 // depth of label text in mm  
 label_text_depth = 0.6; // .1
 
@@ -151,6 +151,17 @@ gridfinityInit(3, 3, height(6), 0, 42) {
 	cutEqual(n_divx = 3, n_divy = 3, style_tab = 0, scoop_weight = 0);
 }
 gridfinityBase([3, 3]);
+*/
+
+// Example with labels - 2x2 bin with custom labels
+/*
+gridfinityInit(2, 2, height(4), 0) {
+    cutEqual(n_divx = 2, n_divy = 2, style_tab = 1, 
+             label_texts = "M3;M4;M5;NUTS", 
+             label_style = 1,  // Embossed labels
+             label_text_size = 2.5);
+}
+gridfinityBase([2, 2]);
 */
 
 // Compartments can be placed anywhere (this includes non-integer positions like 1/2 or 1/3). The grid is defined as (0,0) being the bottom left corner of the bin, with each unit being 1 base long. Each cut() module is a compartment, with the first four values defining the area that should be made into a compartment (X coord, Y coord, width, and height). These values should all be positive. t is the tab style of the compartment (0:full, 1:auto, 2:left, 3:center, 4:right, 5:none). s is a toggle for the bottom scoop.
