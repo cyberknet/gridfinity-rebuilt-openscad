@@ -21,6 +21,7 @@ The project can also be found on [Printables](https://www.printables.com/model/2
 - any number of compartments (along both X and Y axis)
 - togglable scoop
 - togglable tabs, split tabs, and tab alignment
+- **label system with embossed/debossed text and printable labels**
 - togglable holes (with togglable supportless printing hole structures)
 - manual compartment construction (make the most wacky bins imaginable)
 - togglable lip (if you don't care for stackability)
@@ -33,6 +34,16 @@ The printable holes allow your slicer to bridge the gap inside the countersunk m
 
 [<img src="./images/slicer_holes.png" height="200">]()
 [<img src="./images/slicer_holes_top.png" height="200">]()
+
+### Label System
+The built-in label system allows you to add text directly to your bins in three ways:
+- **Printable Labels**: Create separate label strips that fit perfectly into tab slots
+- **Embossed Labels**: Text raised from the surface, printed with the bin  
+- **Debossed Labels**: Text recessed into the surface for a clean look
+
+Enable labels in the customizer or set `enable_labels = true` and `label_text = "Your Text"` in the script. For multiple compartments, separate labels with semicolons: `"Screws;Nuts;Bolts"`.
+
+See [docs/labels.md](docs/labels.md) for complete documentation and examples.
 
 ## Recommendations
 For best results, use a [development snapshots](https://openscad.org/downloads.html#snapshots) version of OpenSCAD. This can speed up rendering from 10 minutes down to a couple of seconds, even for comically large bins. It is not a requirement to use development versions of OpenSCAD.
