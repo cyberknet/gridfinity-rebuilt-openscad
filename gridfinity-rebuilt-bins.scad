@@ -84,6 +84,20 @@ style_lip = 0; //[0: Regular lip, 1:remove lip subtractively, 2: remove lip and 
 // scoop weight percentage. 0 disables scoop, 1 is regular scoop. Any real number will scale the scoop.
 scoop = 1; //[0:0.1:1]
 
+/* [Labels] */
+// enable labels on tabs
+enable_labels = false;
+// text for the labels (semicolon separated for multiple compartments)
+label_text = "Sample"; 
+// label style
+label_style = 1; //[0:None,1:Embossed,2:Debossed]
+// font for label text
+label_font = "Liberation Sans:style=Bold";
+// height of label text in mm
+label_text_size = 3; // .1
+// depth of label text in mm  
+label_text_depth = 0.6; // .1
+
 /* [Base Hole Options] */
 // only cut magnet/screw holes at the corners of the bin to save uneccesary print time
 only_corners = false;
@@ -112,7 +126,13 @@ gridfinityInit(gridx, gridy, height(gridz, gridz_define, style_lip, enable_zsnap
 
     if (divx > 0 && divy > 0) {
 
-        cutEqual(n_divx = divx, n_divy = divy, style_tab = style_tab, scoop_weight = scoop, place_tab = place_tab);
+        if (enable_labels && label_text != "") {
+            cutEqual(n_divx = divx, n_divy = divy, style_tab = style_tab, scoop_weight = scoop, place_tab = place_tab,
+                    label_texts = label_text, label_style = label_style, label_font = label_font, 
+                    label_text_size = label_text_size, label_text_depth = label_text_depth);
+        } else {
+            cutEqual(n_divx = divx, n_divy = divy, style_tab = style_tab, scoop_weight = scoop, place_tab = place_tab);
+        }
 
     } else if (cdivx > 0 && cdivy > 0) {
 

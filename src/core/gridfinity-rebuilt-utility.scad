@@ -9,6 +9,23 @@ use <gridfinity-rebuilt-holes.scad>
 use <../helpers/generic-helpers.scad>
 use <../external/threads-scad/threads.scad>
 
+// ===== String Helper Functions ===== //
+
+/**
+ * @brief Simple string split function for semicolon-separated values
+ * @param str String to split on semicolons
+ * @returns Array of strings
+ */
+function str_split_semicolon(str) = 
+    str == "" ? [] : _split_helper(str, 0, [], "");
+
+function _split_helper(str, index, result, current) =
+    index >= len(str) ? 
+        (current == "" ? result : concat(result, [current])) :
+        str[index] == ";" ? 
+            _split_helper(str, index + 1, concat(result, [current]), "") :
+            _split_helper(str, index + 1, result, str(current, str[index]));
+
 // ===== User Modules ===== //
 
 // functions to convert gridz values to mm values
@@ -73,17 +90,44 @@ function height (z,d=0,l=0,enable_zsnap=true) =
 // style_tab:   tab style for all compartments. see cut()
 // scoop_weight:    scoop toggle for all compartments. see cut()
 // place_tab:   tab suppression for all compartments. see "gridfinity-rebuilt-bins.scad"
-module cutEqual(n_divx=1, n_divy=1, style_tab=1, scoop_weight=1, place_tab=1) {
+// label_texts: semicolon-separated list of labels for compartments
+// label_style: 1=embossed, 2=debossed
+// label_font: font for label text
+// label_text_size: height of label text in mm
+// label_text_depth: depth of label text in mm
+module cutEqual(n_divx=1, n_divy=1, style_tab=1, scoop_weight=1, place_tab=1, 
+                label_texts="", label_style=0, label_font="Liberation Sans:style=Bold",
+                label_text_size=3, label_text_depth=0.6) {
+    
+    // Parse label texts
+    labels = label_texts == "" ? [] : str_split_semicolon(label_texts);
+    
     for (i = [1:n_divx])
     for (j = [1:n_divy])
     {
+        // Calculate linear index for this compartment
+        comp_index = (j-1) * n_divx + (i-1);
+        current_label = comp_index < len(labels) ? labels[comp_index] : "";
+        
         if (
             place_tab == 1 && (i != 1 || j != n_divy) // Top-Left Division
         ) {
-            cut((i-1)*$gxx/n_divx,(j-1)*$gyy/n_divy, $gxx/n_divx, $gyy/n_divy, 5, scoop_weight);
+            if (current_label != "" && label_style > 0) {
+                cut_with_label((i-1)*$gxx/n_divx,(j-1)*$gyy/n_divy, $gxx/n_divx, $gyy/n_divy, 5, scoop_weight,
+                              label_text=current_label, label_style=label_style, label_font=label_font,
+                              label_text_size=label_text_size, label_text_depth=label_text_depth);
+            } else {
+                cut((i-1)*$gxx/n_divx,(j-1)*$gyy/n_divy, $gxx/n_divx, $gyy/n_divy, 5, scoop_weight);
+            }
         }
         else {
-            cut((i-1)*$gxx/n_divx,(j-1)*$gyy/n_divy, $gxx/n_divx, $gyy/n_divy, style_tab, scoop_weight);
+            if (current_label != "" && label_style > 0) {
+                cut_with_label((i-1)*$gxx/n_divx,(j-1)*$gyy/n_divy, $gxx/n_divx, $gyy/n_divy, style_tab, scoop_weight,
+                              label_text=current_label, label_style=label_style, label_font=label_font,
+                              label_text_size=label_text_size, label_text_depth=label_text_depth);
+            } else {
+                cut((i-1)*$gxx/n_divx,(j-1)*$gyy/n_divy, $gxx/n_divx, $gyy/n_divy, style_tab, scoop_weight);
+            }
         }
     }
 }
@@ -196,6 +240,120 @@ module cut(x=0, y=0, w=1, h=1, t=1, s=1, tab_width=d_tabw, tab_height=d_tabh) {
     translate([0, 0, -$dh - BASE_HEIGHT])
     cut_move(x,y,w,h)
     block_cutter(clp(x,0,$gxx), clp(y,0,$gyy), clp(w,0,$gxx-x), clp(h,0,$gyy-y), t, s, tab_width, tab_height);
+}
+
+/**
+ * @brief Enhanced cut module with integrated labeling
+ * @param x X position of compartment
+ * @param y Y position of compartment  
+ * @param w Width of compartment
+ * @param h Height of compartment
+ * @param t Tab style
+ * @param s Scoop toggle
+ * @param tab_width Tab width
+ * @param tab_height Tab height
+ * @param label_text Text for the label (empty = no label)
+ * @param label_style 1=embossed, 2=debossed
+ * @param label_font Font for the label text
+ * @param label_text_size Height of label text in mm
+ * @param label_text_depth Depth of label text in mm
+ */
+module cut_with_label(x=0, y=0, w=1, h=1, t=1, s=1, tab_width=d_tabw, tab_height=d_tabh, 
+                      label_text="", label_style=1, label_font="Liberation Sans:style=Bold", 
+                      label_text_size=3, label_text_depth=0.6) {
+    
+    // Create the normal compartment cut
+    cut(x, y, w, h, t, s, tab_width, tab_height);
+    
+    // Add label if text is provided and style is valid
+    if (label_text != "" && label_style > 0) {
+        place_label_on_tab(x, y, w, h, t, label_text, label_style, label_font, label_text_size, label_text_depth, tab_width);
+    }
+}
+
+/**
+ * @brief Places a label on a tab at the correct position and orientation
+ */
+module place_label_on_tab(x, y, w, h, t, text, style, font, text_size, text_depth, tab_width) {
+    // Calculate compartment center position in mm
+    comp_center_x = (x + w/2) * l_grid;
+    comp_center_y = (y + h/2) * l_grid;
+    comp_width_mm = w * l_grid;
+    
+    // Only place labels on tabs that will actually exist (not style 5 = none)
+    if (t != 5) {
+        // Position the label on the front edge of the compartment (y direction)
+        // This is a simplified positioning - tabs are on the front edge
+        translate([comp_center_x, y * l_grid - d_wall - 1, $dh + BASE_HEIGHT + h_bot]) {
+            rotate([90, 0, 0]) {  // Rotate to face forward
+                if (style == 1) {
+                    // Embossed (raised text)
+                    translate([0, 0, text_depth])
+                    linear_extrude(height = text_depth)
+                    text(text, size = text_size, font = font, halign = "center", valign = "center");
+                } else if (style == 2) {
+                    // Debossed (recessed text) - subtract from the material
+                    translate([0, 0, -0.1])
+                    linear_extrude(height = text_depth + 0.1)
+                    text(text, size = text_size, font = font, halign = "center", valign = "center");
+                }
+            }
+        }
+    }
+}
+
+/**
+ * @brief Creates a printable label that fits into gridfinity tabs
+ * @param text Text to display on the label
+ * @param font Font family and style
+ * @param text_height Height of the text in mm
+ * @param text_depth Depth of the text (for raised/recessed effects)
+ * @param width Width of label (auto-calculated if 0)
+ * @param height Height of label
+ * @param thickness Thickness of label
+ * @param corner_radius Radius for rounded corners
+ * @param style 0=separate printable, 1=embossed, 2=debossed
+ */
+module gridfinity_label(
+    text = "Label",
+    font = "Liberation Sans:style=Bold", 
+    text_height = 3,
+    text_depth = 0.6,
+    width = 0,
+    height = 10,
+    thickness = 1.2,
+    corner_radius = 1,
+    style = 0
+) {
+    
+    // Calculate actual width (simplified - no textmetrics in basic OpenSCAD)
+    calculated_width = max(len(text) * text_height * 0.6 + 4, 10); // Rough approximation
+    actual_width = width > 0 ? width : calculated_width;
+    
+    if (style == 0) {
+        // Separate printable label
+        difference() {
+            // Label base with rounded corners
+            linear_extrude(height = thickness)
+            offset(r = corner_radius)
+            offset(r = -corner_radius)
+            square([actual_width, height], center = true);
+            
+            // Text cutout/emboss
+            translate([0, 0, thickness - text_depth])
+            linear_extrude(height = text_depth + 0.1)
+            text(text, size = text_height, font = font, halign = "center", valign = "center");
+        }
+    } else if (style == 1) {
+        // Embossed text (raised)
+        linear_extrude(height = text_depth)
+        text(text, size = text_height, font = font, halign = "center", valign = "center");
+    } else if (style == 2) {
+        // Debossed text (recessed)
+        translate([0, 0, -text_depth])
+        linear_extrude(height = text_depth + 0.1)
+        text(text, size = text_height, font = font, halign = "center", valign = "center");
+    }
 }
 
 
